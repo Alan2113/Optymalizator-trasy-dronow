@@ -168,7 +168,6 @@ class DroneOptimizer:
             plt.show(block=True)
         else:
             # Upewnij się, że mapa jest wyświetlana
-            print("📊 Wyświetlanie mapy...")
             self.visualizer.show()
 
     def visualize_landing_zones(self, zone_size=20, min_distance=50):
@@ -197,7 +196,14 @@ class DroneOptimizer:
         self.visualizer.plot_landing_zones(safe_zones, zone_size)
 
         # Pokaż wykres
-        self.visualizer.show()
+        print("📊 Wyświetlanie mapy ze strefami lądowania...")
+        try:
+            self.visualizer.show()
+            print("✅ Wizualizacja stref lądowania zakończona!")
+        except KeyboardInterrupt:
+            print("\n⏭️ Wizualizacja przerwana przez użytkownika")
+        except Exception as e:
+            print(f"❌ Błąd podczas wyświetlania: {e}")
 
         return safe_zones
 
@@ -289,7 +295,9 @@ class DroneOptimizer:
                     print("📊 Tworzenie wizualizacji mapy...")
                     try:
                         self.visualize(show_safe_points=False)
-                        print("✅ Mapa wyświetlona pomyślnie!")
+                        print("✅ Wizualizacja zakończona!")
+                    except KeyboardInterrupt:
+                        print("\n⏭️ Wizualizacja przerwana przez użytkownika")
                     except Exception as e:
                         print(f"❌ Błąd podczas wizualizacji: {e}")
                         import traceback
@@ -323,10 +331,15 @@ class DroneOptimizer:
                             print("❌ Nie znaleziono bezpiecznych stref lądowania")
                             print("   Spróbuj zmniejszyć rozmiar strefy lub minimalną odległość")
 
+                    except KeyboardInterrupt:
+                        print("\n⏭️ Przerwano wyszukiwanie stref lądowania")
                     except ValueError as ve:
                         print(f"❌ Błąd danych wejściowych: {ve}")
                         print("   Używam domyślnych wartości: rozmiar=20m, odległość=50m")
-                        safe_zones = self.visualize_landing_zones(20, 50)
+                        try:
+                            safe_zones = self.visualize_landing_zones(20, 50)
+                        except Exception:
+                            print("❌ Nie udało się wyszukać stref z domyślnymi parametrami")
                     except Exception as e:
                         print(f"❌ Błąd podczas wyszukiwania stref: {e}")
                         import traceback

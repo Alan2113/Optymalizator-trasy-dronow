@@ -465,16 +465,31 @@ Najkrótszy segment: {stats['min_segment']:.1f} m"""
             # Spróbuj przenieść okno na wierzch
             try:
                 manager = self.fig.canvas.manager
-                manager.window.wm_attributes('-topmost', True)
-                manager.window.wm_attributes('-topmost', False)
+                if hasattr(manager, 'window'):
+                    manager.window.wm_attributes('-topmost', True)
+                    manager.window.wm_attributes('-topmost', False)
             except:
                 pass  # Ignoruj błędy związane z window managerem
 
+        # Pokaż wykres w trybie nieblokującym
         plt.show(block=False)
-        plt.pause(0.1)  # Krótka pauza dla odświeżenia
+        plt.pause(0.5)  # Daj czas na wyrenderowanie
 
-        # Poczekaj na interakcję użytkownika
-        input("Naciśnij Enter aby kontynuować...")
+        print("📊 Mapa wyświetlona. Zamknij okno aby kontynuować lub naciśnij Ctrl+C...")
+
+        try:
+            # Czekaj aż użytkownik zamknie okno
+            while plt.get_fignums() and self.fig and plt.fignum_exists(self.fig.number):
+                plt.pause(0.1)
+            print("✅ Okno zostało zamknięte.")
+        except KeyboardInterrupt:
+            print("\n⏭️ Przerwano wyświetlanie (Ctrl+C)")
+            if self.fig:
+                plt.close(self.fig)
+        except Exception as e:
+            print(f"⚠️ Błąd podczas wyświetlania: {e}")
+            if self.fig:
+                plt.close(self.fig)
 
     def save(self, filename, dpi=300):
         """Zapisuje wykres do pliku"""
