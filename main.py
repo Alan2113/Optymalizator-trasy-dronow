@@ -2,6 +2,8 @@ import time
 import sys
 import os
 
+import matplotlib
+matplotlib.use("TkAgg")
 # Dodaj src do ścieżki Python
 current_dir = os.path.dirname(os.path.abspath(__file__))
 src_path = os.path.join(current_dir, 'src')
@@ -21,6 +23,7 @@ class DroneOptimizer:
         self.map_data = None
         self.pathfinder = None
         self.visualizer = None
+        self._animation = None
 
         print("🚁 OPTYMALIZATOR TRAS DLA DRONÓW 🚁")
         print("=" * 50)
@@ -133,28 +136,43 @@ class DroneOptimizer:
         print("\n📊 Tworzenie wizualizacji...")
 
         self.visualizer = DroneMapVisualizer(self.map_data)
+
+        # RYSUJ MAPĘ
         self.visualizer.plot_map(show_safe_points=show_safe_points,
                                  pathfinder=self.pathfinder)
 
         if path:
             self.visualizer.plot_path(path, start_point, end_point)
 
-            # Dodaj statystyki do wykresu
             if hasattr(self, '_last_computation_time'):
                 self.visualizer.plot_statistics(path, self._last_computation_time,
                                                 self.pathfinder)
 
             if show_animation:
                 print("🎬 Uruchamianie animacji lotu...")
-                anim = self.visualizer.animate_drone_flight(path, interval=200,
-                                                            save_animation=save_plot)
+                self._animation = self.visualizer.animate_drone_flight(path, interval=600,
+                                                                       save_animation=save_plot)
+
+        # ➕ Upewnij się, że to się wykonuje w odpowiednim miejscu:
+        if show_animation:
+            import matplotlib.pyplot as plt
+            print("▶️ Trwa animacja... Zamknij okno, aby kontynuować.")
+            plt.show(block=True)
+        else:
+            self.visualizer.show()
 
         if save_plot:
             filename = f"drone_map_{int(time.time())}.png"
             self.visualizer.save(filename)
             print(f"💾 Mapa zapisana jako {filename}")
 
-        self.visualizer.show()
+        # pokaż tylko jeśli NIE zapisujemy animacji
+        if show_animation and not save_plot:
+            import matplotlib.pyplot as plt
+            plt.ion()
+            plt.show()
+        else:
+            self.visualizer.show()
 
     def run_demo(self):
         """Uruchamia demonstrację systemu"""
@@ -233,17 +251,15 @@ class DroneOptimizer:
                     self._last_computation_time = comp_time
 
                     if path:
-                        show_anim = input("Pokazać animację? (t/n) [t]: ").lower() != 'n'
                         self.visualize(path, start_point, end_point,
-                                       show_animation=show_anim)
+                                       show_animation=True)
 
                 elif choice == '3':
                     if not self.map_data:
                         print("❌ Najpierw wygeneruj mapę!")
                         continue
 
-                    show_points = input("Pokazać punkty nawigacyjne? (t/n) [n]: ").lower() == 't'
-                    self.visualize(show_safe_points=show_points)
+                    self.visualize(show_safe_points=False)
 
                 elif choice == '4':
                     if not self.pathfinder:
@@ -323,16 +339,7 @@ def main():
         if len(sys.argv) > 1 and sys.argv[1] == '--demo':
             optimizer.run_demo()
         else:
-            print("Wybierz tryb:")
-            print("1. 🎮 Demonstracja")
-            print("2. 🎯 Tryb interaktywny")
-
-            choice = input("Wybór (1-2): ").strip()
-
-            if choice == '1':
-                optimizer.run_demo()
-            else:
-                optimizer.run_interactive()
+            optimizer.run_interactive()
 
     except KeyboardInterrupt:
         print("\n👋 Program przerwany przez użytkownika!")
@@ -344,3 +351,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

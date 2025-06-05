@@ -240,21 +240,20 @@ class DroneMapVisualizer:
         self.ax.add_patch(poly_patch)
 
     def animate_drone_flight(self, path, interval=300, save_animation=False):
-        """Animuje lot drona po trasie"""
         if not path:
             print("Brak trasy do animacji")
             return None
 
-        self.plot_map()
+        import matplotlib.pyplot as plt
+        plt.ion()  # Tryb interaktywny dla animacji
 
-        # Inicjalizuj drona i ślad
+        # Przygotuj tło (nie czyść mapy!)
         drone_point, = self.ax.plot([], [], 'o', color=self.colors['drone'],
                                     markersize=15, label='Dron', zorder=15,
                                     markeredgecolor='orange', markeredgewidth=2)
         trail_line, = self.ax.plot([], [], color='orange', alpha=0.6,
                                    linewidth=3, zorder=4)
 
-        # Dodaj tekst z informacjami
         info_text = self.ax.text(0.02, 0.98, '', transform=self.ax.transAxes,
                                  verticalalignment='top', fontsize=10,
                                  bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
@@ -262,21 +261,16 @@ class DroneMapVisualizer:
         trail_x, trail_y = [], []
 
         def animate(frame):
-            if frame < len(path):
-                current_pos = path[frame]
-                drone_point.set_data([current_pos.x], [current_pos.y])
+            current_pos = path[frame]
+            drone_point.set_data([current_pos.x], [current_pos.y])
+            trail_x.append(current_pos.x)
+            trail_y.append(current_pos.y)
+            trail_line.set_data(trail_x, trail_y)
 
-                trail_x.append(current_pos.x)
-                trail_y.append(current_pos.y)
-                trail_line.set_data(trail_x, trail_y)
-
-                # Aktualizuj informacje
-                progress = (frame + 1) / len(path) * 100
-                info_text.set_text(f'Lot Drona\nKrok: {frame + 1}/{len(path)}\nPostęp: {progress:.1f}%')
-
-                self.ax.set_title(f'Lot Drona - Krok {frame + 1}/{len(path)}',
-                                  fontsize=16, fontweight='bold')
-
+            progress = (frame + 1) / len(path) * 100
+            info_text.set_text(f'Lot Drona\nKrok: {frame + 1}/{len(path)}\nPostęp: {progress:.1f}%')
+            self.ax.set_title(f'Lot Drona - Krok {frame + 1}/{len(path)}',
+                              fontsize=16, fontweight='bold')
             return drone_point, trail_line, info_text
 
         anim = FuncAnimation(self.fig, animate, frames=len(path),
