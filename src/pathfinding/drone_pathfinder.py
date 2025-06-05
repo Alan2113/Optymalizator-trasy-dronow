@@ -409,34 +409,121 @@ class DronePathfinder:
             'min_segment': min(segment_lengths) if segment_lengths else 0
         }
 
-    def get_safe_landing_zones(self, radius=50):
-        """Znajduje bezpieczne strefy lądowania"""
-        safe_zones = []
+    def get_safe_landing_zones(self, landing_zone_size=20, min_distance_between=50):
+        """
+        Znajduje bezpieczne strefy lądowania o określonym rozmiarze
 
-        # Sprawdź punkty na siatce
-        step = 30
-        for x in range(step, self.map_data.width - step, step):
-            for y in range(step, self.map_data.height - step, step):
+        Args:
+            landing_zone_size: Rozmiar strefy lądowania (kwadrat)
+            min_distance_between: Minimalna odległość między strefami lądowania
+        """
+        print(f"🔍 Wyszukiwanie bezpiecznych stref lądowania {landing_zone_size}x{landing_zone_size}m...")
+
+        safe_zones = []
+        half_size = zone_size / 2
+
+        # Sprawdź punkty na siatce z odpowiednim odstępem
+        step = max(min_distance_between // 2, 10)  # Mniejszy krok dla dokładniejszego wyszukiwania, minimum 10
+
+        for x in range(int(half_size), int(self.map_data.width - half_size), step):
+            for y in range(int(half_size), int(self.map_data.height - half_size), step):
                 center = Point(x, y)
 
-                # Sprawdź czy obszar wokół punktu jest bezpieczny
-                is_safe = True
-                test_points = [
-                    Point(x, y),
-                    Point(x + radius, y),
-                    Point(x - radius, y),
-                    Point(x, y + radius),
-                    Point(x, y - radius)
-                ]
+                # Sprawdź czy całą strefa lądowania jest bezpieczna
+                if self._is_landing_zone_safe(center, zone_size):
+                    # Sprawdź odległość od innych stref lądowania
+                    too_close = False
+                    for existing_zone in safe_zones:
+                        if center.distance_to(existing_zone) < min_distance_between:
+                            too_close = True
+                            break
 
-                for test_point in test_points:
-                    if (test_point.x < 0 or test_point.x > self.map_data.width or
-                            test_point.y < 0 or test_point.y > self.map_data.height or
-                            self._point_in_obstacle_with_margin(test_point)):
-                        is_safe = False
-                        break
+                    if not too_close:
+                        safe_zones.append(center)
 
-                if is_safe:
-                    safe_zones.append(center)
-
+        print(f"✅ Znaleziono {len(safe_zones)} bezpiecznych stref lądowania")
         return safe_zones
+
+    def _is_landing_zone_safe(self, center, zone_size):
+        """
+        Sprawdza czy strefa lądowania o zadanym rozmiarze jest bezpieczna
+
+        Args:
+            center: Środek strefy lądowania
+            zone_size: Rozmiar strefy (kwadrat)
+        """
+        half_size = zone_size / 2
+
+        # Punkty do sprawdzenia - narożniki i środek każdej krawędzi
+        test_points = [
+            # Narożniki
+            Point(center.x - half_size, center.y - half_size),
+            Point(center.x + half_size, center.y - half_size),
+            Point(center.x + half_size, center.y + half_size),
+            Point(center.x - half_size, center.y + half_size),
+            # Środki krawędzi
+            Point(center.x, center.y - half_size),
+            Point(center.x + half_size, center.y),
+            Point(center.x, center.y + half_size),
+            Point(center.x - half_size, center.y),
+            # Środek
+            Point(center.x, center.y)
+        ]
+
+        # Sprawdź czy wszystkie punkty testowe są bezpieczne
+        for point in test_points:
+            # Sprawdź granice mapy
+            if (point.x < 0 or point.x > self.map_data.width or
+                    point.y < 0 or point.y > self.map_data.height):
+                return False
+
+            # Sprawdź kolizje z przeszkodami (z dodatkowym marginesem)
+            if self._point_in_obstacle_with_margin(point):
+                return False
+
+        # Dodatkowe sprawdzenie - czy żadna przeszkoda nie przecina strefy lądowania
+        return self._is_landing_area_clear(center, zone_size)
+
+    def _is_landing_area_clear(self, center, zone_size):
+        """
+        Sprawdza czy obszar lądowania nie przecina się z żadną przeszkodą
+        """
+        half_size = zone_size / 2
+
+        # Granice obszaru lądowania
+        zone_min_x = center.x - half_size
+        zone_max_x = center.x + half_size
+        zone_min_y = center.y - half_size
+        zone_max_y = center.y + half_size
+
+        # Sprawdź każdą przeszkodę
+        for obstacle in self.map_data.get_obstacles():
+            # Pobierz bounding box przeszkody
+            bbox = obstacle.get_bounding_box()
+            obs_min_x, obs_min_y, obs_max_x, obs_max_y = bbox
+
+            # Dodaj margines bezpieczeństwa do przeszkody
+            margin = self.safety_margin
+            obs_min_x -= margin
+            obs_max_x += margin
+            obs_min_y -= margin
+            obs_max_y += margin
+
+            # Sprawdź czy bounding boxy się przecinają
+            if not (zone_max_x <= obs_min_x or obs_max_x <= zone_min_x or
+                    zone_max_y <= obs_min_y or obs_max_y <= zone_min_y):
+
+                # Jeśli bounding boxy się przecinają, sprawdź dokładniej
+                # Sprawdź czy środek przeszkody jest w strefie lądowania
+                obs_center = obstacle.centroid()
+                if (zone_min_x <= obs_center.x <= zone_max_x and
+                        zone_min_y <= obs_center.y <= zone_max_y):
+                    return False
+
+                # Sprawdź czy którykolwiek punkt przeszkody jest w strefie lądowania
+                for point in obstacle.points:
+                    if (zone_min_x <= point.x <= zone_max_x and
+                            zone_min_y <= point.y <= zone_max_y):
+                        return False
+
+        return True

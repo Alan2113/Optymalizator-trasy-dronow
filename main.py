@@ -135,6 +135,9 @@ class DroneOptimizer:
 
         print("\n📊 Tworzenie wizualizacji...")
 
+        # Zawsze utwórz nowy visualizer
+        if self.visualizer:
+            self.visualizer.close()
         self.visualizer = DroneMapVisualizer(self.map_data)
 
         # RYSUJ MAPĘ
@@ -153,26 +156,50 @@ class DroneOptimizer:
                 self._animation = self.visualizer.animate_drone_flight(path, interval=600,
                                                                        save_animation=save_plot)
 
-        # ➕ Upewnij się, że to się wykonuje w odpowiednim miejscu:
-        if show_animation:
-            import matplotlib.pyplot as plt
-            print("▶️ Trwa animacja... Zamknij okno, aby kontynuować.")
-            plt.show(block=True)
-        else:
-            self.visualizer.show()
-
         if save_plot:
             filename = f"drone_map_{int(time.time())}.png"
             self.visualizer.save(filename)
             print(f"💾 Mapa zapisana jako {filename}")
 
-        # pokaż tylko jeśli NIE zapisujemy animacji
-        if show_animation and not save_plot:
+        # Pokaż wykres
+        if show_animation:
             import matplotlib.pyplot as plt
-            plt.ion()
-            plt.show()
+            print("▶️ Trwa animacja... Zamknij okno, aby kontynuować.")
+            plt.show(block=True)
         else:
+            # Upewnij się, że mapa jest wyświetlana
+            print("📊 Wyświetlanie mapy...")
             self.visualizer.show()
+
+    def visualize_landing_zones(self, zone_size=20, min_distance=50):
+        """Wizualizuje bezpieczne strefy lądowania"""
+        if not self.pathfinder:
+            raise ValueError("❌ Najpierw zainicjalizuj pathfinder!")
+
+        print("🔍 Wyszukiwanie i wizualizacja bezpiecznych stref lądowania...")
+
+        # Znajdź bezpieczne strefy lądowania
+        safe_zones = self.pathfinder.get_safe_landing_zones(
+            landing_zone_size=zone_size,
+            min_distance_between=min_distance
+        )
+
+        if not safe_zones:
+            print("❌ Nie znaleziono bezpiecznych stref lądowania!")
+            return []
+
+        # Utwórz nowy visualizer
+        if self.visualizer:
+            self.visualizer.close()
+        self.visualizer = DroneMapVisualizer(self.map_data)
+
+        # Wizualizuj strefy lądowania
+        self.visualizer.plot_landing_zones(safe_zones, zone_size)
+
+        # Pokaż wykres
+        self.visualizer.show()
+
+        return safe_zones
 
     def run_demo(self):
         """Uruchamia demonstrację systemu"""
@@ -259,24 +286,51 @@ class DroneOptimizer:
                         print("❌ Najpierw wygeneruj mapę!")
                         continue
 
-                    self.visualize(show_safe_points=False)
+                    print("📊 Tworzenie wizualizacji mapy...")
+                    try:
+                        self.visualize(show_safe_points=False)
+                        print("✅ Mapa wyświetlona pomyślnie!")
+                    except Exception as e:
+                        print(f"❌ Błąd podczas wizualizacji: {e}")
+                        import traceback
+                        traceback.print_exc()
 
                 elif choice == '4':
                     if not self.pathfinder:
                         print("❌ Najpierw wygeneruj mapę!")
                         continue
 
-                    print("🔍 Wyszukiwanie bezpiecznych stref lądowania...")
-                    safe_zones = self.pathfinder.get_safe_landing_zones(radius=30)
-                    print(f"Znaleziono {len(safe_zones)} bezpiecznych stref lądowania")
+                    print("\nKonfiguracja stref lądowania:")
+                    try:
+                        zone_size = int(input("Rozmiar strefy lądowania (5-50m) [20]: ") or 20)
+                        min_distance = int(input("Min. odległość między strefami (10-100m) [50]: ") or 50)
 
-                    # Wizualizuj strefy
-                    self.visualizer = DroneMapVisualizer(self.map_data)
-                    self.visualizer.plot_map()
-                    for zone in safe_zones[:20]:  # Pokaż pierwsze 20
-                        self.visualizer.ax.plot(zone.x, zone.y, 'go', markersize=8, alpha=0.7)
-                    self.visualizer.ax.legend()
-                    self.visualizer.show()
+                        # Walidacja parametrów
+                        if zone_size < 5 or zone_size > 50:
+                            print("⚠️ Rozmiar strefy musi być między 5 a 50m. Używam domyślnej wartości 20m.")
+                            zone_size = 20
+
+                        if min_distance < 10 or min_distance > 100:
+                            print("⚠️ Minimalna odległość musi być między 10 a 100m. Używam domyślnej wartości 50m.")
+                            min_distance = 50
+
+                        safe_zones = self.visualize_landing_zones(zone_size, min_distance)
+
+                        if safe_zones:
+                            print(f"✅ Znaleziono {len(safe_zones)} bezpiecznych stref lądowania")
+                            print("   Strefy zostały wyświetlone na mapie")
+                        else:
+                            print("❌ Nie znaleziono bezpiecznych stref lądowania")
+                            print("   Spróbuj zmniejszyć rozmiar strefy lub minimalną odległość")
+
+                    except ValueError as ve:
+                        print(f"❌ Błąd danych wejściowych: {ve}")
+                        print("   Używam domyślnych wartości: rozmiar=20m, odległość=50m")
+                        safe_zones = self.visualize_landing_zones(20, 50)
+                    except Exception as e:
+                        print(f"❌ Błąd podczas wyszukiwania stref: {e}")
+                        import traceback
+                        traceback.print_exc()
 
                 elif choice == '5':
                     if not self.pathfinder:
@@ -309,6 +363,9 @@ class DroneOptimizer:
 
                 elif choice == '6':
                     print("👋 Do widzenia!")
+                    # Zamknij wszystkie visualizery
+                    if self.visualizer:
+                        self.visualizer.close()
                     break
 
                 else:
@@ -347,8 +404,11 @@ def main():
         print(f"❌ Krytyczny błąd: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # Zamknij wszystkie figury matplotlib
+        import matplotlib.pyplot as plt
+        plt.close('all')
 
 
 if __name__ == "__main__":
     main()
-

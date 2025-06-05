@@ -8,7 +8,8 @@ import time
 class DroneMapVisualizer:
     def __init__(self, map_data):
         self.map_data = map_data
-        self.fig, self.ax = plt.subplots(figsize=(14, 10))
+        self.fig = None
+        self.ax = None
         self.colors = {
             'building': '#8B4513',
             'forbidden': '#FF4444',
@@ -16,11 +17,23 @@ class DroneMapVisualizer:
             'start': '#00AA00',
             'end': '#AA0000',
             'drone': '#FFD700',
-            'safe_points': '#CCCCCC'
+            'safe_points': '#CCCCCC',
+            'landing_zones': '#90EE90'
         }
+        self._ensure_figure()
+
+    def _ensure_figure(self):
+        """Zapewnia że figura i osie są utworzone"""
+        if self.fig is None or self.ax is None or not plt.fignum_exists(self.fig.number):
+            plt.close('all')  # Zamknij wszystkie poprzednie figury
+            self.fig, self.ax = plt.subplots(figsize=(14, 10))
+            # Upewnij się, że figura jest widoczna
+            self.fig.canvas.draw()
+            self.fig.show()
 
     def plot_map(self, show_safe_points=False, pathfinder=None):
         """Wizualizuje mapę z przeszkodami"""
+        self._ensure_figure()
         self.ax.clear()
         self.ax.set_xlim(0, self.map_data.width)
         self.ax.set_ylim(0, self.map_data.height)
@@ -53,8 +66,75 @@ class DroneMapVisualizer:
         if handles:
             self.ax.legend(loc='upper right', framealpha=0.9)
 
+    def plot_landing_zones(self, landing_zones, zone_size=20):
+        """Wizualizuje bezpieczne strefy lądowania"""
+        self._ensure_figure()
+
+        print(f"📊 Wizualizacja {len(landing_zones)} stref lądowania...")
+
+        # Najpierw narysuj mapę
+        self.plot_map()
+
+        # Dodaj strefy lądowania
+        for i, zone in enumerate(landing_zones):
+            # Narysuj kwadrat strefy lądowania
+            half_size = zone_size / 2
+            landing_square = patches.Rectangle(
+                (zone.x - half_size, zone.y - half_size),
+                zone_size, zone_size,
+                facecolor=self.colors['landing_zones'],
+                edgecolor='darkgreen',
+                alpha=0.7,
+                linewidth=2,
+                label='Strefa lądowania' if i == 0 else ""
+            )
+            self.ax.add_patch(landing_square)
+
+            # Dodaj marker w środku
+            self.ax.plot(zone.x, zone.y, 'o',
+                         color='darkgreen', markersize=8,
+                         markeredgecolor='white', markeredgewidth=2,
+                         zorder=10)
+
+            # Dodaj numer strefy (tylko dla pierwszych 20 dla czytelności)
+            if i < 20:
+                self.ax.annotate(f'{i+1}', (zone.x, zone.y),
+                                 xytext=(3, 3), textcoords='offset points',
+                                 fontsize=8, fontweight='bold', color='darkgreen',
+                                 bbox=dict(boxstyle='round,pad=0.2',
+                                           facecolor='white', alpha=0.8))
+
+        # Aktualizuj tytuł
+        self.ax.set_title(f'Mapa Dronów - {len(landing_zones)} Bezpiecznych Stref Lądowania ({zone_size}x{zone_size}m)',
+                          fontsize=14, fontweight='bold')
+
+        # Dodaj informacje o strefach
+        info_text = f"""STREFY LĄDOWANIA:
+================
+Liczba stref: {len(landing_zones)}
+Rozmiar strefy: {zone_size}x{zone_size} m
+Minimalna powierzchnia: {zone_size*zone_size} m²
+
+Strefy są rozmieszczone tak, aby:
+• Nie kolidować z budynkami
+• Nie kolidować ze strefami zakazanymi  
+• Zachować bezpieczną odległość
+• Umożliwić bezpieczne lądowanie"""
+
+        # Dodaj tekst na wykres
+        self.ax.text(0.02, 0.98, info_text, transform=self.ax.transAxes,
+                     verticalalignment='top', fontsize=9,
+                     bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.9))
+
+        # Aktualizuj legendę
+        handles, labels = self.ax.get_legend_handles_labels()
+        if handles:
+            self.ax.legend(loc='upper right', framealpha=0.9)
+
     def plot_precise_path(self, path, start_point=None, end_point=None, show_safety_zones=True):
         """Wizualizuje bardzo dokładnie trasę z wszystkimi szczegółami"""
+        self._ensure_figure()
+
         if not path:
             print("Brak trasy do wyświetlenia")
             return
@@ -240,11 +320,13 @@ class DroneMapVisualizer:
         self.ax.add_patch(poly_patch)
 
     def animate_drone_flight(self, path, interval=300, save_animation=False):
+        """Animuje lot drona po trasie"""
+        self._ensure_figure()
+
         if not path:
             print("Brak trasy do animacji")
             return None
 
-        import matplotlib.pyplot as plt
         plt.ion()  # Tryb interaktywny dla animacji
 
         # Przygotuj tło (nie czyść mapy!)
@@ -346,6 +428,7 @@ Najkrótszy segment: {stats['min_segment']:.1f} m"""
 
     def plot_comparison(self, paths_dict, start_point=None, end_point=None):
         """Porównuje różne trasy na jednym wykresie"""
+        self._ensure_figure()
         self.plot_map()
 
         colors = ['blue', 'red', 'green', 'purple', 'orange']
@@ -371,10 +454,39 @@ Najkrótszy segment: {stats['min_segment']:.1f} m"""
 
     def show(self):
         """Wyświetla wykres"""
+        self._ensure_figure()
         plt.tight_layout()
-        plt.show()
+
+        # Upewnij się, że okno jest na wierzchu i widoczne
+        if self.fig:
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
+
+            # Spróbuj przenieść okno na wierzch
+            try:
+                manager = self.fig.canvas.manager
+                manager.window.wm_attributes('-topmost', True)
+                manager.window.wm_attributes('-topmost', False)
+            except:
+                pass  # Ignoruj błędy związane z window managerem
+
+        plt.show(block=False)
+        plt.pause(0.1)  # Krótka pauza dla odświeżenia
+
+        # Poczekaj na interakcję użytkownika
+        input("Naciśnij Enter aby kontynuować...")
 
     def save(self, filename, dpi=300):
         """Zapisuje wykres do pliku"""
-        plt.savefig(filename, dpi=dpi, bbox_inches='tight', facecolor='white')
+        self._ensure_figure()
+        self.fig.savefig(filename, dpi=dpi, bbox_inches='tight', facecolor='white')
         print(f"Wykres zapisany jako {filename}")
+
+    def close(self):
+        """Zamyka figurę"""
+        if self.fig is not None:
+            plt.close(self.fig)
+            self.fig = None
+            self.ax = None
+        # Dodatkowo zamknij wszystkie otwarte figury matplotlib
+        plt.close('all')
