@@ -64,7 +64,7 @@ class DroneMapVisualizer:
         # Dodaj legendę tylko jeśli są elementy
         handles, labels = self.ax.get_legend_handles_labels()
         if handles:
-            self.ax.legend(loc='upper right', framealpha=0.9)
+            self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), framealpha=0.9)
 
     def plot_landing_zones(self, landing_zones, zone_size=20):
         """Wizualizuje bezpieczne strefy lądowania"""
@@ -129,7 +129,7 @@ Strefy są rozmieszczone tak, aby:
         # Aktualizuj legendę
         handles, labels = self.ax.get_legend_handles_labels()
         if handles:
-            self.ax.legend(loc='upper right', framealpha=0.9)
+            self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), framealpha=0.9)
 
     def plot_precise_path(self, path, start_point=None, end_point=None, show_safety_zones=True):
         """Wizualizuje bardzo dokładnie trasę z wszystkimi szczegółami"""
@@ -198,7 +198,7 @@ Strefy są rozmieszczone tak, aby:
         self._add_segment_lengths(path)
 
         # Aktualizuj legendę
-        self.ax.legend(loc='upper right', framealpha=0.95, fontsize=10)
+        self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), framealpha=0.95, fontsize=10)
 
     def _draw_safety_corridor(self, path):
         """Rysuje korytarz bezpieczeństwa wokół trasy"""
@@ -358,7 +358,7 @@ Strefy są rozmieszczone tak, aby:
         anim = FuncAnimation(self.fig, animate, frames=len(path),
                              interval=interval, blit=False, repeat=True)
 
-        self.ax.legend(loc='upper right', framealpha=0.9)
+        self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), framealpha=0.9)
 
         if save_animation:
             filename = f"drone_animation_{int(time.time())}.gif"

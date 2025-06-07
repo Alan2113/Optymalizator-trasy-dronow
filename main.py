@@ -400,7 +400,7 @@ def main():
     try:
         print("🚁 Optymalizator Tras dla Dronów")
         print("Projekt z geometrii obliczeniowej")
-        print("Autorzy:\n Alan Ozga\n Maciej Sadkowski\n Bartosz Szmyd\n")
+        print("Autorzy:\n Alan Ozga\n Maciej Sadkowski\n Bartosz Szmyd\n Tadeusz Leszczyński\n")
         print("=" * 50)
 
         optimizer = DroneOptimizer(map_width=1200, map_height=900)
