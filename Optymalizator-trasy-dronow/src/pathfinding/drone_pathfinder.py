@@ -92,21 +92,86 @@ class DronePathfinder:
         build_time = time.time() - start_time
         print(f"Graf zbudowany w {build_time:.3f} sekund")
         print(f"Liczba węzłów: {len(self.navigation_graph)}")
+        print(f"WYNIK BUDOWY GRAFU:")
+        print(f"- Węzłów w grafie: {len(self.navigation_graph.nodes())}")
+        print(f"- Krawędzi w grafie: {len(self.navigation_graph.edges())}")
+
+        if len(self.navigation_graph.nodes()) == 0:
+            print("❌ GRAF JEST PUSTY! Problem z triangulacją lub wszystkie punkty są w przeszkodach")
+
+        # Wypisz kilka pierwszych węzłów
+        for i, node in enumerate(list(self.navigation_graph.nodes())[:5]):
+            print(f"  Węzeł {i}: ({node.x:.1f}, {node.y:.1f})")
+
+        # Na końcu _build_navigation_graph dodaj:
+        if len(self.navigation_graph.nodes()) > 0:
+            # Sprawdź spójność grafu
+            components = list(nx.connected_components(self.navigation_graph))
+            print(f"Graf ma {len(components)} składowych spójnych:")
+            for i, component in enumerate(components):
+                print(f"  Składowa {i}: {len(component)} węzłów")
+
+            if len(components) > 1:
+                print("❌ GRAF NIESPÓJNY! To jest główny problem!")
 
     def _build_graph_from_triangulation(self, triangles):
         """Buduje graf nawigacyjny z triangulacji Delaunay"""
         print("Budowanie grafu z triangulacji...")
+
+        # NAJPIERW dodaj wszystkie bezpieczne węzły
+        safe_nodes = set()
+
         for triangle in triangles:
             center = triangle.centroid()
-
-            # Użyj poprawnej nazwy metody: _point_in_obstacle_with_margin
             if not self._point_in_obstacle_with_margin(center):
                 self.navigation_graph.add_node(center)
+                safe_nodes.add(center)
 
-                for vertex in [triangle.p1, triangle.p2, triangle.p3]:
-                    if not self._point_in_obstacle_with_margin(vertex):  # Tu również zmiana
-                        self.navigation_graph.add_node(vertex)
-                        self.navigation_graph.add_edge(center, vertex, weight=center.distance_to(vertex))
+            for vertex in [triangle.p1, triangle.p2, triangle.p3]:
+                if not self._point_in_obstacle_with_margin(vertex):
+                    self.navigation_graph.add_node(vertex)
+                    safe_nodes.add(vertex)
+
+        # TERAZ dodaj połączenia między WSZYSTKIMI bezpiecznymi węzłami w każdym trójkącie
+        for triangle in triangles:
+            triangle_nodes = []
+
+            # Zbierz wszystkie bezpieczne węzły w tym trójkącie
+            center = triangle.centroid()
+            if center in safe_nodes:
+                triangle_nodes.append(center)
+
+            for vertex in [triangle.p1, triangle.p2, triangle.p3]:
+                if vertex in safe_nodes:
+                    triangle_nodes.append(vertex)
+
+            # Połącz wszystkie bezpieczne węzły w tym trójkącie między sobą
+            for i in range(len(triangle_nodes)):
+                for j in range(i + 1, len(triangle_nodes)):
+                    node1, node2 = triangle_nodes[i], triangle_nodes[j]
+                    if self._can_connect(node1, node2):
+                        weight = node1.distance_to(node2)
+                        self.navigation_graph.add_edge(node1, node2, weight=weight)
+
+        print(f"Dodano {len(self.navigation_graph.nodes())} węzłów i {len(self.navigation_graph.edges())} krawędzi")
+
+        # Dodaj połączenia między bliskimi węzłami (jeśli są w zasięgu)
+        print("Dodawanie dodatkowych połączeń między bliskimi węzłami...")
+        nodes_list = list(self.navigation_graph.nodes())
+        connections_added = 0
+
+        for i in range(len(nodes_list)):
+            for j in range(i + 1, len(nodes_list)):
+                node1, node2 = nodes_list[i], nodes_list[j]
+                distance = node1.distance_to(node2)
+
+                # Jeśli węzły są blisko i nie ma już połączenia
+                if distance < 100 and not self.navigation_graph.has_edge(node1, node2):
+                    if self._can_connect(node1, node2):
+                        self.navigation_graph.add_edge(node1, node2, weight=distance)
+                        connections_added += 1
+
+        print(f"Dodano {connections_added} dodatkowych połączeń")
 
     def _point_in_obstacle_with_margin(self, point):
         """Sprawdza, czy punkt jest w przeszkodzie z uwzględnieniem marginesu bezpieczeństwa"""
@@ -126,23 +191,12 @@ class DronePathfinder:
             inflated.append(poly.buffer(self.safety_margin))
         return inflated
 
-    def _point_in_obstacle_with_margin(self, point):
-        pt = ShapelyPoint(point.x, point.y)
-        for inflated_obstacle in self._get_inflated_obstacles():
-            if inflated_obstacle.contains(pt):
-                return True
-        return False
-
     def _can_connect(self, point1, point2):
         line = LineString([(point1.x, point1.y), (point2.x, point2.y)])
         for inflated_obstacle in self._get_inflated_obstacles():
             if inflated_obstacle.intersects(line):
                 return False
         return True
-
-
-
-
 
     def _point_to_segment_distance(self, point, seg_start, seg_end):
         """Oblicza odległość punktu od odcinka"""
@@ -205,6 +259,42 @@ class DronePathfinder:
         return True
 
     def find_path(self, start, end):
+        print(f"=== ROZPOCZYNAM WYSZUKIWANIE TRASY ===")
+        print(f"Start: ({start.x}, {start.y})")
+        print(f"End: ({end.x}, {end.y})")
+
+        # Sprawdź punkty
+        start_safe = not self._point_in_obstacle_with_margin(start)
+        end_safe = not self._point_in_obstacle_with_margin(end)
+
+        print(f"Start bezpieczny: {start_safe}")
+        print(f"End bezpieczny: {end_safe}")
+
+        components = list(nx.connected_components(self.navigation_graph))
+        start_component = None
+        end_component = None
+
+        for i, component in enumerate(components):
+            if start in component:
+                start_component = i
+            if end in component:
+                end_component = i
+        print(
+            f"Start należy do składowej: {start_component} (rozmiar: {len(components[start_component]) if start_component is not None else 'None'})")
+        print(
+            f"End należy do składowej: {end_component} (rozmiar: {len(components[end_component]) if end_component is not None else 'None'})")
+
+        if start_component != end_component:
+            print("❌ Start i end są w różnych składowych - nie ma ścieżki!")
+            return []
+
+        if not start_safe:
+            print("❌ Punkt startowy znajduje się w strefie zakazanej!")
+            return []
+        if not end_safe:
+            print("❌ Punkt docelowy znajduje się w strefie zakazanej!")
+            return []
+
         """Główna metoda wyznaczania trasy A* z walidacją"""
         print(f"Wyznaczanie trasy z {start} do {end}...")
 
@@ -227,6 +317,23 @@ class DronePathfinder:
 
         print(f"Start graph node: {start_node}")
         print(f"End graph node: {end_node}")
+
+        components = list(nx.connected_components(self.navigation_graph))
+        start_component = None
+        end_component = None
+
+        for i, component in enumerate(components):
+            if start_node in component:
+                start_component = i
+            if end_node in component:
+                end_component = i
+
+        print(f"Start należy do składowej: {start_component}")
+        print(f"End należy do składowej: {end_component}")
+
+        if start_component != end_component:
+            print("❌ Start i end są w różnych składowych!")
+            return []
 
         # A* algorithm
         open_set = []
@@ -303,17 +410,28 @@ class DronePathfinder:
         return path
 
     def _find_nearest_graph_node(self, point):
-        """Znajduje najbliższy węzeł grafu"""
+        """Znajduje najbliższy węzeł grafu z największej składowej"""
+        # Znajdź największą składową spójną
+        components = list(nx.connected_components(self.navigation_graph))
+        largest_component = max(components, key=len)
+
+        print(f"Szukam węzła w największej składowej ({len(largest_component)} węzłów)")
+
         min_distance = float('inf')
         nearest_node = None
 
-        for graph_point in self.navigation_graph.nodes():
+        # Szukaj tylko w największej składowej
+        for graph_point in largest_component:
             distance = point.distance_to(graph_point)
             if distance < min_distance:
-                # Sprawdź czy można połączyć punkt z węzłem grafu
-                if distance < 50 or self._can_connect(point, graph_point):
+                if distance < 150:  # Zwiększ jeszcze tolerancję
                     min_distance = distance
                     nearest_node = graph_point
+
+        if nearest_node:
+            print(f"Znaleziono węzeł w odległości {min_distance:.2f}")
+        else:
+            print("Nie znaleziono żadnego węzła w zasięgu!")
 
         return nearest_node
 

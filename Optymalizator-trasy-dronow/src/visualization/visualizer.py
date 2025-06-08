@@ -152,7 +152,7 @@ class DroneMapVisualizer:
 ================
 Liczba stref: {len(landing_zones)}
 Rozmiar strefy: {zone_size}x{zone_size} m
-Minimalna powierzchnia: {zone_size*zone_size} mÂ˛
+Minimalna powierzchnia: {zone_size*zone_size} m^2˛
 
 Strefy są rozmieszczone tak, aby:
 1. Nie kolidować z budynkami
@@ -393,7 +393,7 @@ Strefy są rozmieszczone tak, aby:
             trail_line.set_data(trail_x, trail_y)
 
             progress = (frame + 1) / len(path) * 100
-            info_text.set_text(f'Lot Drona\nKrok: {frame + 1}/{len(path)}\nPostÄp: {progress:.1f}%')
+            info_text.set_text(f'Lot Drona\nKrok: {frame + 1}/{len(path)}\nPostęp: {progress:.1f}%')
             self.ax.set_title(f'Lot Drona - Krok {frame + 1}/{len(path)}',
                               fontsize=16, fontweight='bold')
             return drone_point, trail_line, info_text
@@ -424,14 +424,14 @@ Strefy są rozmieszczone tak, aby:
         graph_info = ""
         if pathfinder:
             graph_nodes = len(pathfinder.navigation_graph)
-            graph_info = f"WÄzĹy grafu: {graph_nodes}\n"
+            graph_info = f"Węzły grafu: {graph_nodes}\n"
 
         # StwĂłrz tekst ze statystykami
         stats_text = f"""STATYSTYKI TRASY:
 ================
 {graph_info}Długość trasy: {stats['total_distance']:.1f} m
 Liczba punktów: {stats['num_waypoints']}
-Liczba zakrÄtĂłw: {stats['num_turns']}
+Liczba zakrętów: {stats['num_turns']}
 Czas obliczeń: {computation_time:.3f} s
 
 Średnia odległość między punktami: {stats['avg_segment_length']:.1f} m
@@ -484,7 +484,7 @@ Najkrótszy segment: {stats['min_segment']:.1f} m"""
                 y_coords = [p.y for p in path]
 
                 self.ax.plot(x_coords, y_coords, color=color,
-                             linewidth=3, label=f'{name} ({len(path)} punktĂłw)',
+                             linewidth=3, label=f'{name} ({len(path)} punktów)',
                              alpha=0.8)
 
         # Oznacz start i koniec
@@ -494,7 +494,7 @@ Najkrótszy segment: {stats['min_segment']:.1f} m"""
             self.ax.plot(end_point.x, end_point.y, 'ro', markersize=12, label='Cel')
 
         self.ax.legend()
-        self.ax.set_title('PorĂłwnanie Tras DronĂłw')
+        self.ax.set_title('Porównanie Tras Dronów')
 
     def show(self):
         """WyĹwietla wykres"""
@@ -519,19 +519,19 @@ Najkrótszy segment: {stats['min_segment']:.1f} m"""
         plt.show(block=False)
         plt.pause(0.5)  # Daj czas na wyrenderowanie
 
-        print("đ Mapa wyświetlona. Zamknij okno aby kontynuować lub naciśnij Ctrl+C...")
+        print(" Mapa wyświetlona. Zamknij okno aby kontynuować lub naciśnij Ctrl+C...")
 
         try:
             # Czekaj aĹź uĹźytkownik zamknie okno
             while plt.get_fignums() and self.fig and plt.fignum_exists(self.fig.number):
                 plt.pause(0.1)
-            print("â Okno zostało zamknięte.")
+            print(" Okno zostało zamknięte.")
         except KeyboardInterrupt:
-            print("\nâ­ď¸ Przerwano wyświetlanie (Ctrl+C)")
+            print("\n Przerwano wyświetlanie (Ctrl+C)")
             if self.fig:
                 plt.close(self.fig)
         except Exception as e:
-            print(f"â ď¸ BĹÄd podczas wyĹwietlania: {e}")
+            print(f"d podczas wyświetlania: {e}")
             if self.fig:
                 plt.close(self.fig)
 

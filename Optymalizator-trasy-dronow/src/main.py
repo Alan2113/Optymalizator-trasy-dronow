@@ -261,12 +261,25 @@ class DroneOptimizer:
                 if choice == '1':
                     print("\nKonfiguracja mapy:")
                     buildings = int(input("Liczba budynków (10-50) [25]: ") or 25)
+                    if buildings < 10 or buildings > 50:
+                        print("❌ Liczba budynków musi być między 10 a 50!")
+                        continue
                     zones = int(input("Liczba stref zakazanych (3-20) [8]: ") or 8)
+                    if zones < 3 or zones > 20:
+                        print("❌ Liczba stref zakazanych musi być między 3 a 20!")
+                        continue
                     seed = int(input("Seed (dla powtarzalności) [42]: ") or 42)
+                    if seed < 0 or seed > 999999:
+                        print("❌ Seed musi być między 0 a 999999!")
+                        continue
                     margin = int(input("Margines bezpieczeństwa (10-50) [25]: ") or 25)
+                    if margin < 10 or margin > 50:
+                        print("❌ Margines bezpieczeństwa musi być między 10 a 50!")
+                        continue
 
                     self.generate_map(buildings, zones, seed)
                     self.initialize_pathfinder(margin)
+
 
                 elif choice == '2':
                     if not self.pathfinder:
@@ -275,9 +288,21 @@ class DroneOptimizer:
 
                     print(f"\nWspółrzędne (0-{self.map_width} x 0-{self.map_height}):")
                     start_x = float(input(f"Start X: "))
+                    if start_x < 0 or start_x > self.map_width:
+                        print(f"❌ Start X musi być między 0 a {self.map_width}!")
+                        continue
                     start_y = float(input(f"Start Y: "))
+                    if start_y < 0 or start_y > self.map_height:
+                        print(f"❌ Start Y musi być między 0 a {self.map_height}!")
+                        continue
                     end_x = float(input(f"Cel X: "))
+                    if end_x < 0 or end_x > self.map_width:
+                        print(f"❌ Cel X musi być między 0 a {self.map_width}!")
+                        continue
                     end_y = float(input(f"Cel Y: "))
+                    if end_y < 0 or end_y > self.map_height:
+                        print(f"❌ Cel Y musi być między 0 a {self.map_height}!")
+                        continue
 
                     path, comp_time, start_point, end_point = self.find_path(
                         start_x, start_y, end_x, end_y)
