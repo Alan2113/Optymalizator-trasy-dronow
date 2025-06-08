@@ -4,8 +4,8 @@ import time
 from geometry.point import Point
 from geometry.triangulation import DelaunayTriangulation
 from pathfinding.range_tree import RangeTree2D
-from shapely.geometry import LineString, Polygon
-from shapely.geometry import Polygon, LineString, Point as ShapelyPoint
+from shapely.geometry import LineString,Polygon
+from shapely.geometry import Polygon,Point as ShapelyPoint
 import networkx as nx
 
 
@@ -26,8 +26,6 @@ class PathNode:
 
 class DronePathfinder:
     def __init__(self, map_data, safety_margin=25):
-        import networkx as nx
-
         self.map_data = map_data
         self.safety_margin = safety_margin
         self.navigation_graph = nx.Graph()  # ZMIANA: użyj NetworkX zamiast dict

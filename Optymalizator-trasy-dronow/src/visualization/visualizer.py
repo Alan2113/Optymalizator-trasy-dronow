@@ -58,9 +58,9 @@ class DroneMapVisualizer:
                 self.ax.plot(point.x, point.y, 'o', color=self.colors['safe_points'],
                              markersize=2, alpha=0.5)
 
-        self.ax.set_title('Mapa DronĂłw - Przeszkody i Strefy Zakazane', fontsize=16, fontweight='bold')
-        self.ax.set_xlabel('WspĂłĹrzÄdna X [m]', fontsize=12)
-        self.ax.set_ylabel('WspĂłĹrzÄdna Y [m]', fontsize=12)
+        self.ax.set_title('Mapa Dronów - Przeszkody i Strefy Zakazane', fontsize=16, fontweight='bold')
+        self.ax.set_xlabel('Współrzędna X [m]', fontsize=12)
+        self.ax.set_ylabel('Współrzędna Y [m]', fontsize=12)
 
         # Dodaj legendÄ tylko jeĹli sÄ elementy
         handles, labels = self.ax.get_legend_handles_labels()
@@ -109,7 +109,7 @@ class DroneMapVisualizer:
         """Wizualizuje bezpieczne strefy lÄdowania"""
         self._ensure_figure()
 
-        print(f"đ Wizualizacja {len(landing_zones)} stref lÄdowania...")
+        print(f"đ Wizualizacja {len(landing_zones)} stref lądowania...")
 
         # Najpierw narysuj mapÄ
         self.plot_map()
@@ -125,7 +125,7 @@ class DroneMapVisualizer:
                 edgecolor='darkgreen',
                 alpha=0.7,
                 linewidth=2,
-                label='Strefa lÄdowania' if i == 0 else ""
+                label='Strefa lądowania' if i == 0 else ""
             )
             self.ax.add_patch(landing_square)
 
@@ -148,17 +148,17 @@ class DroneMapVisualizer:
                           fontsize=14, fontweight='bold')
 
         # Dodaj informacje o strefach
-        info_text = f"""STREFY LÄDOWANIA:
+        info_text = f"""STREFY LĄDOWANIA:
 ================
 Liczba stref: {len(landing_zones)}
 Rozmiar strefy: {zone_size}x{zone_size} m
 Minimalna powierzchnia: {zone_size*zone_size} mÂ˛
 
-Strefy sÄ rozmieszczone tak, aby:
-â˘ Nie kolidowaÄ z budynkami
-â˘ Nie kolidowaÄ ze strefami zakazanymi  
-â˘ ZachowaÄ bezpiecznÄ odlegĹoĹÄ
-â˘ UmoĹźliwiÄ bezpieczne lÄdowanie"""
+Strefy są rozmieszczone tak, aby:
+â˘ Nie kolidować z budynkami
+â˘ Nie kolidować ze strefami zakazanymi  
+â˘ Zachować bezpieczną odległość
+â˘ Umożliwiać bezpieczne lądowanie"""
 
         # Dodaj tekst na wykres
         self.ax.text(0.02, 0.98, info_text, transform=self.ax.transAxes,
@@ -175,7 +175,7 @@ Strefy sÄ rozmieszczone tak, aby:
         self._ensure_figure()
 
         if not path:
-            print("Brak trasy do wyĹwietlenia")
+            print("Brak trasy do wyświetlenia")
             return
 
         # Rysuj trasÄ z bardzo wysokÄ dokĹadnoĹciÄ
@@ -292,7 +292,7 @@ Strefy sÄ rozmieszczone tak, aby:
             corridor_patch = patches.Polygon(corridor_points, closed=True,
                                              facecolor='lightblue', alpha=0.2,
                                              edgecolor='blue', linewidth=1,
-                                             label='Korytarz bezpieczeĹstwa')
+                                             label='Korytarz bezpieczeństwa')
             self.ax.add_patch(corridor_patch)
 
     def _add_detailed_direction_arrows(self, path):
