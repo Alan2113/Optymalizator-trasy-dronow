@@ -3,6 +3,7 @@ import sys
 import os
 
 import matplotlib
+import traceback
 matplotlib.use("TkAgg")
 # Dodaj src do ścieżki Python
 current_dir = os.path.dirname(os.path.abspath(__file__))

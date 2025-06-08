@@ -390,7 +390,7 @@ class DronePathfinder:
         print(f"🔍 Wyszukiwanie bezpiecznych stref lądowania {landing_zone_size}x{landing_zone_size}m...")
 
         safe_zones = []
-        half_size = zone_size / 2
+        half_size = landing_zone_size / 2
 
         # Sprawdź punkty na siatce z odpowiednim odstępem
         step = max(min_distance_between // 2, 10)  # Mniejszy krok dla dokładniejszego wyszukiwania, minimum 10
@@ -400,7 +400,7 @@ class DronePathfinder:
                 center = Point(x, y)
 
                 # Sprawdź czy całą strefa lądowania jest bezpieczna
-                if self._is_landing_zone_safe(center, zone_size):
+                if self._is_landing_zone_safe(center,landing_zone_size):
                     # Sprawdź odległość od innych stref lądowania
                     too_close = False
                     for existing_zone in safe_zones:

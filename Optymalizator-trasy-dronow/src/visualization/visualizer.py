@@ -109,7 +109,7 @@ class DroneMapVisualizer:
         """Wizualizuje bezpieczne strefy lÄdowania"""
         self._ensure_figure()
 
-        print(f"đ Wizualizacja {len(landing_zones)} stref lądowania...")
+        print(f" Wizualizacja {len(landing_zones)} stref lądowania...")
 
         # Najpierw narysuj mapÄ
         self.plot_map()
@@ -144,7 +144,7 @@ class DroneMapVisualizer:
                                            facecolor='white', alpha=0.8))
 
         # Aktualizuj tytuĹ
-        self.ax.set_title(f'Mapa DronĂłw - {len(landing_zones)} Bezpiecznych Stref LÄdowania ({zone_size}x{zone_size}m)',
+        self.ax.set_title(f'Mapa Dronów - {len(landing_zones)} Bezpiecznych Stref Lądowania ({zone_size}x{zone_size}m)',
                           fontsize=14, fontweight='bold')
 
         # Dodaj informacje o strefach
@@ -155,13 +155,13 @@ Rozmiar strefy: {zone_size}x{zone_size} m
 Minimalna powierzchnia: {zone_size*zone_size} mÂ˛
 
 Strefy są rozmieszczone tak, aby:
-â˘ Nie kolidować z budynkami
-â˘ Nie kolidować ze strefami zakazanymi  
-â˘ Zachować bezpieczną odległość
-â˘ Umożliwiać bezpieczne lądowanie"""
+1. Nie kolidować z budynkami
+2. Nie kolidować ze strefami zakazanymi  
+3. Zachować bezpieczną odległość
+4. Umożliwiać bezpieczne lądowanie"""
 
         # Dodaj tekst na wykres
-        self.ax.text(0.02, 0.98, info_text, transform=self.ax.transAxes,
+        self.ax.text(1.06, 0.6, info_text, transform=self.ax.transAxes,
                      verticalalignment='top', fontsize=9,
                      bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.9))
 
@@ -169,6 +169,9 @@ Strefy są rozmieszczone tak, aby:
         handles, labels = self.ax.get_legend_handles_labels()
         if handles:
             self.ax.legend(loc='upper left', bbox_to_anchor=(1.06, 1), borderaxespad=0., framealpha=0.9)
+
+    plt.tight_layout()
+    plt.subplots_adjust(right=0.75)  # Zmniejsz szerokość głównego wykresu
 
     def plot_precise_path(self, path, start_point=None, end_point=None, show_safety_zones=True):
         """Wizualizuje bardzo dokĹadnie trasÄ z wszystkimi szczegĂłĹami"""
@@ -426,14 +429,14 @@ Strefy są rozmieszczone tak, aby:
         # StwĂłrz tekst ze statystykami
         stats_text = f"""STATYSTYKI TRASY:
 ================
-{graph_info}DĹugoĹÄ trasy: {stats['total_distance']:.1f} m
-Liczba punktĂłw: {stats['num_waypoints']}
+{graph_info}Długość trasy: {stats['total_distance']:.1f} m
+Liczba punktów: {stats['num_waypoints']}
 Liczba zakrÄtĂłw: {stats['num_turns']}
-Czas obliczeĹ: {computation_time:.3f} s
+Czas obliczeń: {computation_time:.3f} s
 
-Ĺrednia odlegĹoĹÄ miÄdzy punktami: {stats['avg_segment_length']:.1f} m
-NajdĹuĹźszy segment: {stats['max_segment']:.1f} m
-NajkrĂłtszy segment: {stats['min_segment']:.1f} m"""
+Średnia odległość między punktami: {stats['avg_segment_length']:.1f} m
+Najdłuższy segment: {stats['max_segment']:.1f} m
+Najkrótszy segment: {stats['min_segment']:.1f} m"""
 
         print(stats_text)
 
@@ -516,15 +519,15 @@ NajkrĂłtszy segment: {stats['min_segment']:.1f} m"""
         plt.show(block=False)
         plt.pause(0.5)  # Daj czas na wyrenderowanie
 
-        print("đ Mapa wyĹwietlona. Zamknij okno aby kontynuowaÄ lub naciĹnij Ctrl+C...")
+        print("đ Mapa wyświetlona. Zamknij okno aby kontynuować lub naciśnij Ctrl+C...")
 
         try:
             # Czekaj aĹź uĹźytkownik zamknie okno
             while plt.get_fignums() and self.fig and plt.fignum_exists(self.fig.number):
                 plt.pause(0.1)
-            print("â Okno zostaĹo zamkniÄte.")
+            print("â Okno zostało zamknięte.")
         except KeyboardInterrupt:
-            print("\nâ­ď¸ Przerwano wyĹwietlanie (Ctrl+C)")
+            print("\nâ­ď¸ Przerwano wyświetlanie (Ctrl+C)")
             if self.fig:
                 plt.close(self.fig)
         except Exception as e:
